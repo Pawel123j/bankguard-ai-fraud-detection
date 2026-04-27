@@ -1,0 +1,44 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.deps/
+.local-deps/
+.pip-cache/
+.tmp/
+.npm-bootstrap/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# SQLite and local data
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/tests/*.db
+
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

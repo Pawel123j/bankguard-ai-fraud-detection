@@ -1,0 +1,51 @@
+transaction_id,customer_id,amount,currency,merchant,merchant_category,country,city,channel,transaction_date,is_foreign,is_night_transaction,previous_failed_attempts,device_trust_score,status
+BGA-2026-0001,CUST-1001,42.18,USD,FreshMart,Groceries,United States,New York,CARD,2026-03-01T10:15:00,false,false,0,96,REVIEWED
+BGA-2026-0002,CUST-1002,86.40,USD,Metro Fuel,Fuel,United States,Chicago,CARD,2026-03-01T12:40:00,false,false,0,91,REVIEWED
+BGA-2026-0003,CUST-1003,18.99,USD,StreamBox,Subscription,United States,Austin,ONLINE,2026-03-01T19:25:00,false,false,0,88,REVIEWED
+BGA-2026-0004,CUST-1004,224.70,USD,NorthStar Airlines,Travel,United States,Seattle,ONLINE,2026-03-02T09:30:00,false,false,0,82,NEW
+BGA-2026-0005,CUST-1005,64.12,USD,Urban Table,Dining,United States,Boston,CARD,2026-03-02T13:05:00,false,false,0,94,REVIEWED
+BGA-2026-0006,CUST-1006,138.45,USD,HomeGrid Utilities,Utilities,United States,Denver,TRANSFER,2026-03-02T15:45:00,false,false,0,90,REVIEWED
+BGA-2026-0007,CUST-1007,510.00,USD,BlueCare Clinic,Healthcare,United States,San Diego,CARD,2026-03-03T08:10:00,false,false,0,87,NEW
+BGA-2026-0008,CUST-1008,37.20,USD,City Pharmacy,Healthcare,United States,Portland,CARD,2026-03-03T17:30:00,false,false,0,93,REVIEWED
+BGA-2026-0009,CUST-1009,955.00,USD,Oak Furniture,Home Goods,United States,Nashville,ONLINE,2026-03-04T11:55:00,false,false,1,78,NEW
+BGA-2026-0010,CUST-1010,75.35,USD,Daily Grind,Dining,United States,San Francisco,CARD,2026-03-04T07:20:00,false,false,0,97,REVIEWED
+BGA-2026-0011,CUST-1011,126.18,USD,QuickPay Mobile,Services,United States,Miami,ONLINE,2026-03-05T21:10:00,false,false,1,73,NEW
+BGA-2026-0012,CUST-1012,249.99,USD,Tech Depot,Electronics,United States,Charlotte,ONLINE,2026-03-05T14:35:00,false,false,0,86,NEW
+BGA-2026-0013,CUST-1013,800.00,USD,Central ATM,Cash Withdrawal,United States,Atlanta,ATM,2026-03-06T16:25:00,false,false,0,80,NEW
+BGA-2026-0014,CUST-1014,32.06,USD,Green Grocer,Groceries,United States,Phoenix,CARD,2026-03-06T18:45:00,false,false,0,95,REVIEWED
+BGA-2026-0015,CUST-1015,1420.00,USD,Summit Insurance,Insurance,United States,Dallas,TRANSFER,2026-03-07T10:00:00,false,false,0,84,NEW
+BGA-2026-0016,CUST-1016,3100.00,USD,EuroStay Hotels,Travel,France,Paris,CARD,2026-03-07T23:40:00,true,true,0,72,NEW
+BGA-2026-0017,CUST-1017,11750.00,USD,Premier Auto,Automotive,United States,Los Angeles,TRANSFER,2026-03-08T14:10:00,false,false,1,70,NEW
+BGA-2026-0018,CUST-1018,650.00,USD,Global Gadgets,Electronics,Canada,Toronto,ONLINE,2026-03-08T22:50:00,true,true,0,69,NEW
+BGA-2026-0019,CUST-1019,410.55,USD,NightRide Travel,Travel,United States,Las Vegas,CARD,2026-03-09T02:15:00,false,true,3,77,NEW
+BGA-2026-0020,CUST-1020,8200.00,USD,Artisan Jewelers,Luxury Goods,United States,New York,CARD,2026-03-09T20:30:00,false,false,1,68,NEW
+BGA-2026-0021,CUST-1021,980.20,USD,RemitNow,Money Transfer,Mexico,Mexico City,TRANSFER,2026-03-10T01:05:00,true,true,0,76,NEW
+BGA-2026-0022,CUST-1022,265.90,USD,CloudWorks SaaS,Software,Germany,Berlin,ONLINE,2026-03-10T03:25:00,true,true,1,81,NEW
+BGA-2026-0023,CUST-1023,445.30,USD,FastCash ATM,Cash Withdrawal,United States,Detroit,ATM,2026-03-11T02:45:00,false,true,3,74,NEW
+BGA-2026-0024,CUST-1024,10800.00,USD,Harbor Investments,Investment Services,United States,Boston,TRANSFER,2026-03-11T09:05:00,false,false,1,63,NEW
+BGA-2026-0025,CUST-1025,1275.00,USD,GameArena,Gambling,United Kingdom,London,ONLINE,2026-03-12T23:10:00,true,true,0,67,NEW
+BGA-2026-0026,CUST-1026,320.00,USD,Mobile Planet,Electronics,United States,Orlando,ONLINE,2026-03-12T01:20:00,false,true,0,33,NEW
+BGA-2026-0027,CUST-1027,5500.00,USD,Borderless Wire,Wire Transfer,Poland,Warsaw,TRANSFER,2026-03-13T21:40:00,true,false,2,58,NEW
+BGA-2026-0028,CUST-1028,15600.00,USD,Elite Watches,Luxury Goods,United States,New York,CARD,2026-03-13T22:05:00,false,true,2,44,NEW
+BGA-2026-0029,CUST-1029,740.00,USD,Offshore Exchange,Crypto Exchange,Canada,Vancouver,ONLINE,2026-03-14T04:00:00,true,true,1,55,NEW
+BGA-2026-0030,CUST-1030,125.00,USD,Airport ATM,Cash Withdrawal,Brazil,Sao Paulo,ATM,2026-03-14T02:35:00,true,true,0,62,NEW
+BGA-2026-0031,CUST-1031,11850.00,USD,Lagos Crypto Hub,Crypto Exchange,Nigeria,Lagos,ONLINE,2026-03-15T02:10:00,true,true,4,24,NEW
+BGA-2026-0032,CUST-1032,24700.00,USD,Volga Wire,Wire Transfer,Russia,Moscow,TRANSFER,2026-03-15T03:05:00,true,true,5,18,NEW
+BGA-2026-0033,CUST-1033,13450.00,USD,Midnight Casino,Gambling,United Kingdom,London,ONLINE,2026-03-16T01:30:00,true,true,3,31,NEW
+BGA-2026-0034,CUST-1034,9300.00,USD,Diamond Vault,Luxury Goods,United States,Miami,CARD,2026-03-16T02:20:00,false,true,4,35,NEW
+BGA-2026-0035,CUST-1035,17800.00,USD,Tehran Electronics,Electronics,Iran,Tehran,ONLINE,2026-03-17T23:55:00,true,true,2,27,NEW
+BGA-2026-0036,CUST-1036,12100.00,USD,Global Remit,Money Transfer,Nigeria,Abuja,TRANSFER,2026-03-17T22:15:00,true,true,3,52,NEW
+BGA-2026-0037,CUST-1037,6400.00,USD,Secure ATM Network,Cash Withdrawal,Belarus,Minsk,ATM,2026-03-18T03:15:00,true,true,4,29,NEW
+BGA-2026-0038,CUST-1038,20890.00,USD,Unknown Merchant,Wire Transfer,Unknown,Unknown,TRANSFER,2026-03-18T00:45:00,true,true,6,12,NEW
+BGA-2026-0039,CUST-1039,11200.00,USD,Neon Devices,Electronics,United States,Las Vegas,ONLINE,2026-03-19T02:25:00,false,true,3,36,NEW
+BGA-2026-0040,CUST-1040,15050.00,USD,Prestige Imports,Luxury Goods,France,Paris,CARD,2026-03-19T21:05:00,true,false,3,38,NEW
+BGA-2026-0041,CUST-1041,69.90,USD,BookLine,Retail,United States,Minneapolis,ONLINE,2026-03-20T13:20:00,false,false,0,89,REVIEWED
+BGA-2026-0042,CUST-1042,121.48,USD,Family Market,Groceries,United States,Columbus,CARD,2026-03-20T18:10:00,false,false,0,92,REVIEWED
+BGA-2026-0043,CUST-1043,2300.00,USD,Sunrise Payroll,Payroll,United States,Raleigh,TRANSFER,2026-03-21T08:55:00,false,false,0,85,REVIEWED
+BGA-2026-0044,CUST-1044,59.00,USD,Fitness Cloud,Subscription,United States,Tampa,ONLINE,2026-03-21T06:35:00,false,false,0,91,REVIEWED
+BGA-2026-0045,CUST-1045,430.75,USD,Weekend Gear,Retail,United States,Salt Lake City,CARD,2026-03-22T16:15:00,false,false,1,79,NEW
+BGA-2026-0046,CUST-1046,3890.00,USD,Alpine Travel,Travel,Switzerland,Zurich,CARD,2026-03-22T22:30:00,true,false,0,64,NEW
+BGA-2026-0047,CUST-1047,9150.00,USD,Prime Marketplaces,Retail,United States,San Jose,ONLINE,2026-03-23T01:15:00,false,true,3,46,NEW
+BGA-2026-0048,CUST-1048,236.00,USD,ArcadeWin,Gambling,United States,Atlantic City,ONLINE,2026-03-23T00:20:00,false,true,0,72,NEW
+BGA-2026-0049,CUST-1049,7800.00,USD,Continental Wire,Wire Transfer,Spain,Madrid,TRANSFER,2026-03-24T03:35:00,true,true,3,42,NEW
+BGA-2026-0050,CUST-1050,18750.00,USD,Pyongyang Transfer,Money Transfer,North Korea,Pyongyang,TRANSFER,2026-03-24T02:05:00,true,true,4,20,NEW
