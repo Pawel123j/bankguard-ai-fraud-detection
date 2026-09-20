@@ -46,8 +46,48 @@ The backend owns fraud scoring, persistence, API routes, CSV imports, dashboard 
 
 ## Screenshots
 
-![Dashboard Screenshot](docs/screenshots/dashboard.png)
-![Transactions Screenshot](docs/screenshots/transactions.png)
+Captured with Playwright against the running application — backend seeded from
+`data/sample_transactions.csv`, frontend served from a production build. No
+mockups.
+
+### Fraud Command Center
+
+![Dashboard](docs/screenshots/02-dashboard.png)
+
+Risk-level and channel breakdowns over the 50 seeded transactions, with the
+most recent critical alerts. The counters are consistent by construction:
+HIGH (2) + CRITICAL (9) equals the 11 shown as *high risk*.
+
+### Transaction Monitoring
+
+![Transaction monitoring](docs/screenshots/03-transactions.png)
+
+Search, channel filter and sort over the queue, with a detail panel showing the
+risk score, device trust and — the part that matters for an analyst — the
+**reasons** behind the score: foreign transaction, night transaction, repeated
+failed attempts, suspicious merchant category. The score is explainable, not a
+black box.
+
+### Case Operations
+
+![Case board](docs/screenshots/04-cases.png)
+
+Kanban board across NEW / INVESTIGATING / RESOLVED / FALSE POSITIVE. The board
+in this screenshot was worked through the UI — six cases moved between columns —
+so it shows the workflow in use rather than an untouched backlog.
+
+### Risk Reports
+
+![Risk reports](docs/screenshots/05-reports.png)
+
+Aggregate exposure, an executive summary generated from the current data, top
+alert countries, and CSV / JSON export.
+
+### Sign-in
+
+![Login](docs/screenshots/01-login.png)
+
+JWT authentication; the analyst account is created by `seed.py` (see below).
 
 ## The analyst account
 
