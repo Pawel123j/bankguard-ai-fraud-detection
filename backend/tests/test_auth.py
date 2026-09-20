@@ -8,6 +8,7 @@ below pins down one property that regression would quietly undo.
 from __future__ import annotations
 
 import importlib
+import os
 
 import jwt
 import pytest
@@ -15,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from app import models
 from app.database import SessionLocal
-from app.security import hash_password, verify_password
+from app.security import get_jwt_secret, hash_password, verify_password
 from tests.conftest import ANALYST_EMAIL, ANALYST_PASSWORD
 
 
@@ -33,9 +34,7 @@ def test_login_returns_a_real_signed_token(client: TestClient, analyst):
     assert body["expires_in"] > 0
 
     # It must be a JWT this service can verify — not a constant string.
-    claims = jwt.decode(
-        body["access_token"], "test-secret-not-used-anywhere-real", algorithms=["HS256"]
-    )
+    claims = jwt.decode(body["access_token"], get_jwt_secret(), algorithms=["HS256"])
     assert claims["sub"] == ANALYST_EMAIL
     assert claims["exp"] > claims["iat"]
 
@@ -140,7 +139,7 @@ def test_token_signed_with_another_secret_is_rejected(client: TestClient, analys
 def test_expired_token_is_rejected(client: TestClient, analyst):
     expired = jwt.encode(
         {"sub": ANALYST_EMAIL, "name": "Test Analyst", "iat": 0, "exp": 1},
-        "test-secret-not-used-anywhere-real",
+        get_jwt_secret(),
         algorithm="HS256",
     )
     response = client.get(
@@ -190,11 +189,17 @@ def test_missing_jwt_secret_is_fatal(monkeypatch):
     """No fallback secret: the app must refuse rather than sign with a default."""
     import app.security as security
 
+    # Zapamiętaj to, co faktycznie jest skonfigurowane — test nie może
+    # zakładać konkretnej wartości, bo CI podaje własną.
+    original = os.environ["BANKGUARD_JWT_SECRET"]
+
     monkeypatch.delenv("BANKGUARD_JWT_SECRET", raising=False)
     importlib.reload(security)
-
-    with pytest.raises(RuntimeError, match="BANKGUARD_JWT_SECRET"):
-        security.get_jwt_secret()
-
-    monkeypatch.setenv("BANKGUARD_JWT_SECRET", "test-secret-not-used-anywhere-real")
-    importlib.reload(security)
+    try:
+        with pytest.raises(RuntimeError, match="BANKGUARD_JWT_SECRET"):
+            security.get_jwt_secret()
+    finally:
+        # monkeypatch cofnie zmienną, ale nie przeładowanie modułu — musimy
+        # przywrócić oba, inaczej kolejne testy dostaną zepsuty moduł.
+        monkeypatch.setenv("BANKGUARD_JWT_SECRET", original)
+        importlib.reload(security)
