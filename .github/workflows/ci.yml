@@ -1,10 +1,11 @@
 name: BankGuard AI CI
 
+# Wcześniej: branches: ["main"] — czyli CI NIE uruchamiało się na gałęziach
+# roboczych i pierwszą informacją o błędzie był czerwony build na main.
 on:
   push:
-    branches: ["main"]
+    branches: ["**"]
   pull_request:
-    branches: ["main"]
 
 jobs:
   backend:
@@ -25,7 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run tests
-        run: pytest
+        # Aplikacja celowo odmawia startu bez sekretu podpisującego (patrz
+        # app/security.py), więc testy też muszą go dostać. Wartość jest
+        # jednorazowa i nie ma znaczenia poza tym przebiegiem.
+        env:
+          BANKGUARD_JWT_SECRET: ci-only-secret-${{ github.run_id }}
+        run: pytest -q
 
   frontend:
     name: Frontend build
@@ -44,6 +50,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Type-check frontend
+        run: npx tsc --noEmit
       - name: Build frontend
         run: npm run build
 
