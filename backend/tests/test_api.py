@@ -1,31 +1,20 @@
-import os
-from pathlib import Path
+"""API smoke tests. Auth-specific behaviour lives in test_auth.py."""
 
-os.environ["BANKGUARD_DATABASE_URL"] = f"sqlite:///{Path(__file__).with_name('test_bankguard.db')}"
+from __future__ import annotations
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.database import Base, engine  # noqa: E402
-from app.main import app  # noqa: E402
+from fastapi.testclient import TestClient
 
 
-client = TestClient(app)
-
-
-def setup_function():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-
-def test_health_endpoint():
+def test_health_endpoint_is_public(client: TestClient):
+    """Health must stay reachable without a token — probes do not log in."""
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
 
-def test_dashboard_stats_endpoint():
-    response = client.get("/api/dashboard/stats")
+def test_dashboard_stats_on_an_empty_database(client: TestClient, auth_headers):
+    response = client.get("/api/dashboard/stats", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -36,4 +25,3 @@ def test_dashboard_stats_endpoint():
         "HIGH": 0,
         "CRITICAL": 0,
     }
-
