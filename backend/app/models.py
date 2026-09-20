@@ -6,6 +6,26 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+class Analyst(Base):
+    """A fraud analyst who can sign in to the console.
+
+    Introduced together with real JWT auth. Previously the only "account" was
+    an email/password pair compared inline in the login route, which meant the
+    credentials lived in source control and could not be rotated, disabled or
+    added to without a deploy.
+    """
+
+    __tablename__ = "analysts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    full_name = Column(String(160), nullable=False, default="Fraud Analyst")
+    # bcrypt hash — never the password itself.
+    password_hash = Column(String(255), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class Transaction(Base):
     __tablename__ = "transactions"
 

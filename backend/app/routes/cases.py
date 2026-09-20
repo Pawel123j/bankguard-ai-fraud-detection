@@ -5,9 +5,15 @@ from sqlalchemy.orm import Session, joinedload
 
 from app import models, schemas
 from app.database import get_db
+from app.security import get_current_analyst
 
 
-router = APIRouter(prefix="/api/cases", tags=["cases"])
+router = APIRouter(
+    prefix="/api/cases", tags=["cases"],
+    # Zależność na routerze, nie na pojedynczych trasach: nowy endpoint
+    # nie może przez przeoczenie zostać bez uwierzytelnienia.
+    dependencies=[Depends(get_current_analyst)],
+)
 
 
 @router.get("", response_model=list[schemas.FraudCaseRead])

@@ -4,9 +4,15 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
+from app.security import get_current_analyst
 
 
-router = APIRouter(prefix="/api/reports", tags=["reports"])
+router = APIRouter(
+    prefix="/api/reports", tags=["reports"],
+    # Zależność na routerze, nie na pojedynczych trasach: nowy endpoint
+    # nie może przez przeoczenie zostać bez uwierzytelnienia.
+    dependencies=[Depends(get_current_analyst)],
+)
 
 
 @router.get("/summary")

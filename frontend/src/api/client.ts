@@ -60,14 +60,64 @@ export interface ReportSummary {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+const TOKEN_STORAGE_KEY = "bankguard.access_token";
+
+/**
+ * The API now issues a real, expiring JWT and every /api route verifies it, so
+ * the token has to be attached to each request and cleared when it stops being
+ * accepted.
+ *
+ * sessionStorage rather than localStorage: an analyst console is a per-session
+ * tool, and a token that dies with the tab is one fewer thing left behind on a
+ * shared workstation. Neither is immune to XSS — moving to an httpOnly cookie
+ * would be the next step if this were more than a demo.
+ */
+export function setAccessToken(token: string | null) {
+  try {
+    if (token) {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Private browsing or blocked storage — the session simply will not persist
+    // across reloads, which is acceptable; it must not break the app.
+  }
+}
+
+export function getAccessToken(): string | null {
+  try {
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Session expired or not signed in");
+    this.name = "UnauthorizedError";
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getAccessToken();
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
-    ...options,
   });
+
+  if (response.status === 401) {
+    // The token is gone, forged or expired. Drop it so the UI falls back to the
+    // login screen instead of retrying with a credential the API rejects.
+    setAccessToken(null);
+    throw new UnauthorizedError();
+  }
 
   if (!response.ok) {
     const message = await response.text();
@@ -89,11 +139,24 @@ function queryString(params: Record<string, string | undefined>) {
 }
 
 export const api = {
-  login(email: string, password: string) {
-    return request<{ access_token: string; token_type: string; analyst: string }>("/api/auth/login", {
+  async login(email: string, password: string) {
+    const result = await request<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      analyst: string;
+    }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    setAccessToken(result.access_token);
+    return result;
+  },
+  logout() {
+    setAccessToken(null);
+  },
+  getCurrentAnalyst() {
+    return request<{ email: string; analyst: string }>("/api/auth/me");
   },
   getDashboardStats() {
     return request<DashboardStats>("/api/dashboard/stats");
