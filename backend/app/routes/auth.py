@@ -1,6 +1,10 @@
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.orm import Session
 
+from app import models
+from app.database import get_db
+from app.security import create_access_token, get_current_analyst, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -12,17 +16,45 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
-    token_type: str = "demo"
+    token_type: str = "bearer"
+    expires_in: int
+    analyst: str
+
+
+class AnalystResponse(BaseModel):
+    email: EmailStr
     analyst: str
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest) -> LoginResponse:
-    if payload.email != "analyst@bankguard.ai" or payload.password != "demo123":
+def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    """Exchange analyst credentials for a signed, expiring access token."""
+    analyst = (
+        db.query(models.Analyst)
+        .filter(models.Analyst.email == payload.email.lower())
+        .first()
+    )
+
+    # One message and one status code for every failure: unknown address,
+    # wrong password and disabled account must be indistinguishable, or the
+    # endpoint becomes a way to enumerate valid analyst accounts.
+    if analyst is None or not analyst.is_active or not verify_password(
+        payload.password, analyst.password_hash
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid demo credentials",
+            detail="Invalid credentials",
         )
 
-    return LoginResponse(access_token="demo-bankguard-session", analyst="Fraud Analyst")
+    token, expires_in = create_access_token(
+        subject=analyst.email, full_name=analyst.full_name
+    )
+    return LoginResponse(
+        access_token=token, expires_in=expires_in, analyst=analyst.full_name
+    )
 
+
+@router.get("/me", response_model=AnalystResponse)
+def me(analyst: models.Analyst = Depends(get_current_analyst)) -> AnalystResponse:
+    """Who the presented token belongs to — used by the frontend on load."""
+    return AnalystResponse(email=analyst.email, analyst=analyst.full_name)

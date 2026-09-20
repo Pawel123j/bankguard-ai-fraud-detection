@@ -9,10 +9,16 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.security import get_current_analyst
 from app.fraud_engine import score_transaction
 
 
-router = APIRouter(prefix="/api/transactions", tags=["transactions"])
+router = APIRouter(
+    prefix="/api/transactions", tags=["transactions"],
+    # Zależność na routerze, nie na pojedynczych trasach: nowy endpoint
+    # nie może przez przeoczenie zostać bez uwierzytelnienia.
+    dependencies=[Depends(get_current_analyst)],
+)
 
 
 def _parse_bool(value: Any) -> bool:
