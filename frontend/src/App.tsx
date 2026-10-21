@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { api, getAccessToken, SESSION_CHANGED_EVENT } from "./api/client";
 
 import Navbar, { type Page } from "./components/Navbar";
 import Cases from "./pages/Cases";
@@ -16,9 +17,15 @@ function pageFromHash(): Page {
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("bankguard-authenticated") === "true",
+    () => Boolean(getAccessToken()),
   );
   const [page, setPage] = useState<Page>(pageFromHash);
+
+  useEffect(() => {
+    const syncSession = () => setIsAuthenticated(Boolean(getAccessToken()));
+    window.addEventListener(SESSION_CHANGED_EVENT, syncSession);
+    return () => window.removeEventListener(SESSION_CHANGED_EVENT, syncSession);
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => setPage(pageFromHash());
@@ -34,12 +41,11 @@ export default function App() {
   }, [page]);
 
   function handleLogin() {
-    localStorage.setItem("bankguard-authenticated", "true");
     setIsAuthenticated(true);
   }
 
   function handleLogout() {
-    localStorage.removeItem("bankguard-authenticated");
+    api.logout();
     setIsAuthenticated(false);
     window.location.hash = "dashboard";
   }

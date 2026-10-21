@@ -26,10 +26,12 @@ ANALYST_PASSWORD = "correct-horse-battery-staple"
 
 
 @pytest.fixture()
-def client() -> TestClient:
+def client(monkeypatch) -> TestClient:
     """A client against a freshly created, empty database."""
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    from app import login_throttle
+    monkeypatch.setattr(login_throttle, "login_throttle", login_throttle.LoginThrottle())
     return TestClient(app)
 
 

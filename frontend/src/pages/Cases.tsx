@@ -21,8 +21,13 @@ export default function Cases() {
   }, []);
 
   async function updateCase(id: number, payload: { status?: CaseStatus; notes?: string }) {
-    await api.updateCase(id, payload);
-    await loadCases();
+    setError("");
+    try {
+      await api.updateCase(id, payload);
+      await loadCases();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update case. Please retry.");
+    }
   }
 
   return (

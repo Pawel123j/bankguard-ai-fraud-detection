@@ -35,7 +35,10 @@ export default function CaseBoard({ cases, onUpdate }: CaseBoardProps) {
   async function saveNotes(caseId: number) {
     setSavingCaseId(caseId);
     try {
-      await onUpdate(caseId, { notes: notesByCase[caseId] ?? "" });
+      const currentCase = cases.find((item) => item.id === caseId);
+      if (currentCase) {
+        await onUpdate(caseId, { notes: notesByCase[caseId] ?? currentCase.notes });
+      }
     } finally {
       setSavingCaseId(null);
     }
@@ -66,6 +69,7 @@ export default function CaseBoard({ cases, onUpdate }: CaseBoardProps) {
                     : "No amount"}
                 </p>
                 <select
+                  disabled={savingCaseId === fraudCase.id}
                   aria-label={`Update status for case ${fraudCase.id}`}
                   onChange={(event) => handleStatusChange(fraudCase.id, event.target.value as CaseStatus)}
                   value={fraudCase.status}

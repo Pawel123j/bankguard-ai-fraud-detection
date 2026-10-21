@@ -43,3 +43,9 @@ yarn-error.log*
 Thumbs.db
 .idea/
 .vscode/
+
+e2e/artifacts/
+e2e/__pycache__/
+.pytest_cache/
+
+.venv-e2e/

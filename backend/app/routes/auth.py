@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
+from app.login_throttle import limit_login
 from app.security import create_access_token, get_current_analyst, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -26,7 +27,7 @@ class AnalystResponse(BaseModel):
     analyst: str
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, dependencies=[Depends(limit_login)])
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
     """Exchange analyst credentials for a signed, expiring access token."""
     analyst = (

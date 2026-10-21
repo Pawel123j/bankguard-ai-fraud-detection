@@ -61,6 +61,8 @@ export interface ReportSummary {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 const TOKEN_STORAGE_KEY = "bankguard.access_token";
+export const SESSION_CHANGED_EVENT = "bankguard-session-changed";
+let memoryToken: string | null = null;
 
 /**
  * The API now issues a real, expiring JWT and every /api route verifies it, so
@@ -73,6 +75,7 @@ const TOKEN_STORAGE_KEY = "bankguard.access_token";
  * would be the next step if this were more than a demo.
  */
 export function setAccessToken(token: string | null) {
+  memoryToken = token;
   try {
     if (token) {
       sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
@@ -83,13 +86,14 @@ export function setAccessToken(token: string | null) {
     // Private browsing or blocked storage — the session simply will not persist
     // across reloads, which is acceptable; it must not break the app.
   }
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
 }
 
 export function getAccessToken(): string | null {
   try {
     return sessionStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
-    return null;
+    return memoryToken;
   }
 }
 
@@ -106,7 +110,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -177,16 +181,10 @@ export const api = {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}/api/transactions/import`, {
+    return request<{ imported: number; skipped: number; created_cases: number }>("/api/transactions/import", {
       method: "POST",
       body: formData,
     });
-
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-
-    return response.json() as Promise<{ imported: number; skipped: number; created_cases: number }>;
   },
   getCases() {
     return request<FraudCase[]>("/api/cases");

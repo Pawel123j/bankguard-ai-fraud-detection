@@ -283,3 +283,33 @@ This project demonstrates:
 
 Pawel123j
 
+## Weryfikacja środowiska — 2026-10-17
+
+Naprawiono autoryzację uploadu CSV, usuwanie tokenu przy wylogowaniu, reakcję UI na 401 i zachowanie istniejących notatek przy ponownym zapisie. Import ogranicza odczyt do 10 MB, sprawdza UTF-8, kolumny i każdy rekord przez ten sam schemat co API; błędny wiersz odrzuca cały import przed zapisem. Kwoty nieskończone są odrzucane.
+
+Backend: `cd backend && python -m pytest -q` — 89 PASS. Frontend: `cd frontend && npm ci && npm run build`. Browser E2E tworzy własną tymczasową SQLite i konto testowe; sprawdza rzeczywisty login, upload, sprawy, notatki, odświeżenie i logout. CI jest w `.github/workflows/browser.yml`. Dla lokalnego E2E zbuduj frontend z `VITE_API_BASE_URL=http://127.0.0.1:18321`; opcjonalnie `E2E_API_PYTHON` wskazuje interpreter z zależnościami backendu.
+
+JWT pochodzi z `BANKGUARD_JWT_SECRET`; wartości w teście są wyłącznie testowe. Publiczna produkcja wymaga m.in. rozproszonego limitowania żądań, TLS, kontroli retencji i wersjonowanych migracji bazy. Scoring jest regułowy i korzysta z danych syntetycznych; testy nie dowodzą skuteczności na rzeczywistych oszustwach. Audyt npm frontendu: zero zgłoszeń po aktualizacji; nie jest to audyt całego systemu.
+
+
+### Testy przeglądarkowe
+
+Po zainstalowaniu zależności aplikacji i zbudowaniu frontendu zgodnie z README / workflow `browser.yml` (lub jobem browser w `ci.yml`):
+
+```bash
+python -m venv .venv-e2e
+# Aktywuj ten venv przed dalszymi poleceniami.
+python -m pip install -r e2e/requirements.txt
+python -m playwright install chromium
+python -m pytest -q e2e
+```
+
+Na Linux może być potrzebne `python -m playwright install --with-deps chromium` z uprawnieniami administratora. Alternatywnie `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` wskazuje istniejący Chromium. Testy uruchamiają i zatrzymują własny serwer, używają nowego kontekstu przeglądarki i zapisują logi w ignorowanym `e2e/artifacts/`. Pełny backend musi mieć zainstalowane swoje zależności; `E2E_API_PYTHON` jest opcjonalnym wyborem jego interpretera w AutoDesk/BankGuard. Testy nie uruchamiają wdrożenia.
+
+## Walidacja etapu 2 — 2026-10-18
+
+Logowanie ma limit 10 prób/5 minut na adres klienta, rezerwowany przed hashowaniem, także przy równoległych żądaniach. Zwraca 429 i Retry-After. Limit jest lokalny dla procesu; nie parsuje sam nagłówków proxy. Zaktualizowano FastAPI/Starlette, PyJWT, python-multipart i pytest po potwierdzonym audycie. Ponowny pip-audit zainstalowanego środowiska: 0 zgłoszeń.
+
+Z katalogu backend: `python -m app.backup /ścieżka/bankguard.db /nowa/ścieżka/snapshot.db`. Narzędzie korzysta z SQLite online backup (w tym WAL), weryfikuje integralność, tworzy plik z prawami 0600 i odmawia nadpisania istniejącego pliku. Aby odtworzyć: zatrzymaj własne API, zachowaj oryginał, wykonaj osobną kopię poprawnego snapshotu i ustaw BANKGUARD_DATABASE_URL na tę kopię. Nigdy nie podmieniaj aktywnego pliku bazy. Schemat bieżącej wersji nadal inicjalizuje `create_all`; testowane jest powtórne uruchomienie, nie migracja przyszłych schematów.
+
+95 testów PASS także po instalacji w nowym venv; E2E importu/spraw/awarii API/sesji i axe logowania/dashboardu PASS. Poprawiono kontrast przycisku. Czysta instalacja/build/audit frontendu PASS. Wynik oznacza lokalne demo analityczne; scoring regułowy nie został potwierdzony na rzeczywistych oszustwach.

@@ -13,7 +13,7 @@ CaseStatus = Literal["NEW", "INVESTIGATING", "RESOLVED", "FALSE_POSITIVE"]
 class TransactionBase(BaseModel):
     transaction_id: str = Field(min_length=3, max_length=64)
     customer_id: str = Field(min_length=3, max_length=64)
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     currency: str = Field(default="USD", min_length=3, max_length=3)
     merchant: str = Field(min_length=2, max_length=160)
     merchant_category: str = Field(min_length=2, max_length=100)

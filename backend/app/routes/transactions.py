@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import io
 from typing import Any
+from pydantic import ValidationError
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import asc, desc, or_
@@ -19,6 +20,8 @@ router = APIRouter(
     # nie może przez przeoczenie zostać bez uwierzytelnienia.
     dependencies=[Depends(get_current_analyst)],
 )
+
+MAX_CSV_BYTES = 10 * 1024 * 1024
 
 
 def _parse_bool(value: Any) -> bool:
@@ -146,17 +149,38 @@ def create_transaction(payload: schemas.TransactionCreate, db: Session = Depends
 
 @router.post("/import")
 async def import_transactions(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file.filename.lower().endswith(".csv"):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only CSV files are supported")
 
-    content = (await file.read()).decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(content))
+    raw = await file.read(MAX_CSV_BYTES + 1)
+    if len(raw) > MAX_CSV_BYTES:
+        raise HTTPException(status_code=413, detail="CSV exceeds the 10 MB limit.")
+    try:
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV must use UTF-8 encoding.") from None
+    reader = csv.DictReader(io.StringIO(content), strict=True)
+    required = {name for name, field in schemas.TransactionCreate.model_fields.items() if field.is_required()}
+    if not reader.fieldnames or not required.issubset(reader.fieldnames):
+        raise HTTPException(status_code=400, detail="CSV is missing required transaction columns.")
+    # Validate the whole batch before writing; a bad row never leaves half an import.
+    data_rows = []
+    try:
+        for row_number, row in enumerate(reader, start=2):
+            try:
+                payload = schemas.TransactionCreate.model_validate(row)
+            except ValidationError:
+                raise HTTPException(status_code=400, detail=f"Invalid transaction at CSV row {row_number}.") from None
+            data_rows.append(_normalize_transaction_data(payload.model_dump()))
+    except csv.Error:
+        raise HTTPException(status_code=400, detail="CSV is malformed.") from None
+    if not data_rows:
+        raise HTTPException(status_code=400, detail="CSV contains no transactions.")
     imported = 0
     skipped = 0
     created_cases = 0
 
-    for row in reader:
-        data = _normalize_transaction_data(row)
+    for data in data_rows:
         duplicate = (
             db.query(models.Transaction)
             .filter(models.Transaction.transaction_id == data["transaction_id"])
