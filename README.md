@@ -143,9 +143,11 @@ The API will run at `http://localhost:8000`.
 
 ## How To Run The Frontend
 
+Use Node.js 24, matching the frontend CI jobs. Install the locked dependencies:
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
