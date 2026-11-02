@@ -7,12 +7,13 @@ import StatCard from "../components/StatCard";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     api
       .getDashboardStats()
-      .then(setStats)
+      .then((value) => { setStats(value); setRefreshedAt(new Date().toLocaleString()); })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Unable to load stats"));
   }, []);
 
@@ -21,16 +22,18 @@ export default function Dashboard() {
 
   return (
     <div className="page-stack">
+      <p className="eyebrow">Last refreshed: {refreshedAt} · Demo data · Rule-based alerts</p>
       <section className="stat-grid">
-        <StatCard caption="Transactions in the local monitoring database" label="Total transactions" value={stats.total_transactions} />
+        <StatCard href="#transactions" caption="Transactions in the local monitoring database" label="Total transactions" value={stats.total_transactions} />
         <StatCard
           caption="High and critical records requiring analyst attention"
+          href="#transactions?risk=HIGH_PRIORITY"
           label="High risk transactions"
           tone="amber"
           value={stats.high_risk_transactions}
         />
-        <StatCard caption="Critical fraud alerts" label="Critical alerts" tone="red" value={stats.critical_alerts} />
-        <StatCard caption="Cases still in active workflow" label="Open fraud cases" tone="violet" value={stats.open_fraud_cases} />
+        <StatCard href="#transactions?risk=CRITICAL" caption="Critical fraud alerts" label="Critical alerts" tone="red" value={stats.critical_alerts} />
+        <StatCard href="#cases" caption="Cases still in active workflow" label="Open fraud cases" tone="violet" value={stats.open_fraud_cases} />
       </section>
 
       <section className="dashboard-grid">

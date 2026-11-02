@@ -7,19 +7,22 @@ refuses to load without one — that refusal is itself covered by a test in
 
 from __future__ import annotations
 
+import atexit
 import os
+import tempfile
 from pathlib import Path
 
-os.environ["BANKGUARD_DATABASE_URL"] = f"sqlite:///{Path(__file__).with_name('test_bankguard.db')}"
+_test_db = tempfile.TemporaryDirectory(prefix="bankguard-tests-")
+atexit.register(_test_db.cleanup)
+os.environ["BANKGUARD_DATABASE_URL"] = f"sqlite:///{Path(_test_db.name) / 'bankguard.db'}"
 os.environ.setdefault("BANKGUARD_JWT_SECRET", "test-secret-not-used-anywhere-real")
 
 import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-
 from app import models  # noqa: E402
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.security import hash_password  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 ANALYST_EMAIL = "analyst@bankguard.ai"
 ANALYST_PASSWORD = "correct-horse-battery-staple"

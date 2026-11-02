@@ -1,7 +1,6 @@
 import csv
-from datetime import datetime
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
@@ -10,7 +9,7 @@ sys.path.append(str(ROOT))
 from app import models  # noqa: E402
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.fraud_engine import score_transaction  # noqa: E402
-
+from app.time_utils import utc_naive  # noqa: E402
 
 CSV_PATH = ROOT / "data" / "sample_transactions.csv"
 
@@ -32,7 +31,7 @@ def normalize_row(row: dict[str, str]) -> dict[str, Any]:
         "country": row["country"].strip(),
         "city": row["city"].strip(),
         "channel": row["channel"].strip().upper(),
-        "transaction_date": datetime.fromisoformat(row["transaction_date"]),
+        "transaction_date": utc_naive(row["transaction_date"]),
         "is_foreign": parse_bool(row["is_foreign"]),
         "is_night_transaction": parse_bool(row["is_night_transaction"]),
         "previous_failed_attempts": int(row["previous_failed_attempts"]),
@@ -47,12 +46,11 @@ def seed() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        db.query(models.FraudCase).delete()
-        db.query(models.Transaction).delete()
-
         with CSV_PATH.open(newline="", encoding="utf-8") as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
+                if db.query(models.Transaction).filter_by(transaction_id=row["transaction_id"].strip()).first():
+                    continue
                 transaction = models.Transaction(**normalize_row(row))
                 db.add(transaction)
                 db.flush()
@@ -71,7 +69,7 @@ def seed() -> None:
         _seed_analyst(db)
 
         db.commit()
-        print("Seeded BankGuard AI database from sample_transactions.csv")
+        print("Added missing demo transactions; existing transactions, cases and notes preserved.")
     finally:
         db.close()
 

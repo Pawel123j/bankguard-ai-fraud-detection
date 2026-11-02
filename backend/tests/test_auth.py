@@ -12,13 +12,11 @@ import os
 
 import jwt
 import pytest
-from fastapi.testclient import TestClient
-
 from app import models
 from app.database import SessionLocal
 from app.security import get_jwt_secret, hash_password, verify_password
+from fastapi.testclient import TestClient
 from tests.conftest import ANALYST_EMAIL, ANALYST_PASSWORD
-
 
 # --- token issuing ---------------------------------------------------------
 
@@ -187,7 +185,7 @@ def test_malformed_hash_fails_closed():
 
 def test_missing_jwt_secret_is_fatal(monkeypatch):
     """No fallback secret: the app must refuse rather than sign with a default."""
-    import app.security as security
+    from app import security
 
     # Zapamiętaj to, co faktycznie jest skonfigurowane — test nie może
     # zakładać konkretnej wartości, bo CI podaje własną.

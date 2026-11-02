@@ -49,8 +49,7 @@ export interface DashboardStats {
 
 export interface ReportSummary {
   total_transactions: number;
-  total_amount: number;
-  high_risk_amount: number;
+  amounts_by_currency: Array<{ currency: string; total_amount: number; high_risk_amount: number }>;
   open_cases: number;
   risk_distribution: Record<string, number>;
   channel_distribution: Record<string, number>;

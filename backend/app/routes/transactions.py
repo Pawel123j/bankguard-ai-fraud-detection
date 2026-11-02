@@ -1,18 +1,18 @@
 import csv
-from datetime import datetime
 import io
+from datetime import datetime
 from typing import Any
-from pydantic import ValidationError
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from pydantic import ValidationError
 from sqlalchemy import asc, desc, or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.security import get_current_analyst
 from app.fraud_engine import score_transaction
-
+from app.security import get_current_analyst
+from app.time_utils import utc_naive
 
 router = APIRouter(
     prefix="/api/transactions", tags=["transactions"],
@@ -31,9 +31,7 @@ def _parse_bool(value: Any) -> bool:
 
 
 def _parse_datetime(value: Any) -> datetime:
-    if isinstance(value, datetime):
-        return value
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).replace(tzinfo=None)
+    return utc_naive(value)
 
 
 def _normalize_transaction_data(data: dict[str, Any]) -> dict[str, Any]:

@@ -9,10 +9,10 @@ interface TransactionTableProps {
 
 type SortKey = "transaction_date" | "amount" | "risk_score";
 
-const riskOptions: Array<RiskLevel | "ALL"> = ["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const riskOptions: Array<RiskLevel | "ALL" | "HIGH_PRIORITY"> = ["ALL", "HIGH_PRIORITY", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export default function TransactionTable({ transactions }: TransactionTableProps) {
-  const [riskLevel, setRiskLevel] = useState<RiskLevel | "ALL">("ALL");
+  const [riskLevel, setRiskLevel] = useState<RiskLevel | "ALL" | "HIGH_PRIORITY">(() => { const risk = new URLSearchParams(window.location.hash.split("?")[1]).get("risk"); return riskOptions.includes(risk as RiskLevel) ? risk as RiskLevel : "ALL"; });
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("transaction_date");
   const [selected, setSelected] = useState<Transaction | null>(transactions[0] ?? null);
@@ -21,7 +21,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
     const query = search.trim().toLowerCase();
     return [...transactions]
       .filter((transaction) => {
-        const matchesRisk = riskLevel === "ALL" || transaction.risk_level === riskLevel;
+        const matchesRisk = riskLevel === "ALL" || transaction.risk_level === riskLevel || (riskLevel === "HIGH_PRIORITY" && ["HIGH", "CRITICAL"].includes(transaction.risk_level));
         const matchesSearch =
           !query ||
           transaction.customer_id.toLowerCase().includes(query) ||
@@ -50,7 +50,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
           />
           <select
             aria-label="Filter by risk level"
-            onChange={(event) => setRiskLevel(event.target.value as RiskLevel | "ALL")}
+            onChange={(event) => setRiskLevel(event.target.value as RiskLevel | "ALL" | "HIGH_PRIORITY")}
             value={riskLevel}
           >
             {riskOptions.map((option) => (

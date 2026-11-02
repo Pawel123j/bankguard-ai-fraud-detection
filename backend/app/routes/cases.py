@@ -1,12 +1,10 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app import models, schemas
 from app.database import get_db
 from app.security import get_current_analyst
-
+from app.time_utils import utc_now_naive
 
 router = APIRouter(
     prefix="/api/cases", tags=["cases"],
@@ -48,7 +46,7 @@ def update_case(case_id: int, payload: schemas.FraudCaseUpdate, db: Session = De
     elif payload.status == "FALSE_POSITIVE" and fraud_case.transaction:
         fraud_case.transaction.status = "CLEARED"
 
-    fraud_case.updated_at = datetime.utcnow()
+    fraud_case.updated_at = utc_now_naive()
     db.commit()
     db.refresh(fraud_case)
     return fraud_case
