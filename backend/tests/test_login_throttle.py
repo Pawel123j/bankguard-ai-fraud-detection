@@ -1,9 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-from fastapi import HTTPException
-
 from app.login_throttle import LoginThrottle
+from fastapi import HTTPException
 
 
 def test_login_api_limits_attempts_and_ignores_spoofed_forwarding(client):

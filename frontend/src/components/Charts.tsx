@@ -14,7 +14,7 @@ function BarChart<T extends string>({ data, order }: ChartProps<T> & { order: T[
     <div className="bar-chart">
       {order.map((key) => {
         const value = data[key] ?? 0;
-        const width = `${Math.max(4, (value / max) * 100)}%`;
+        const width = `${Math.max(0, (value / max) * 100)}%`;
         return (
           <div className="chart-row" key={key}>
             <div className="chart-label">

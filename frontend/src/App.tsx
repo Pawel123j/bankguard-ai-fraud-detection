@@ -11,7 +11,7 @@ import Transactions from "./pages/Transactions";
 const pages: Page[] = ["dashboard", "transactions", "cases", "reports"];
 
 function pageFromHash(): Page {
-  const value = window.location.hash.replace("#", "") as Page;
+  const value = window.location.hash.replace("#", "").split("?")[0] as Page;
   return pages.includes(value) ? value : "dashboard";
 }
 
@@ -70,7 +70,7 @@ export default function App() {
           </div>
           <div className="analyst-pill">
             <span className="status-dot" />
-            Analyst console
+            Demo · rule-based scoring
           </div>
         </header>
 

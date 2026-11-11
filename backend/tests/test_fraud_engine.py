@@ -12,7 +12,6 @@ the two must stay in step.
 from __future__ import annotations
 
 import pytest
-
 from app.fraud_engine import risk_level_for_score, score_transaction
 
 # A transaction that trips no rule at all. Individual tests override one field

@@ -1,10 +1,9 @@
 import sqlite3
 
 import pytest
-from sqlalchemy import create_engine, inspect
-
 from app.backup import snapshot_database
 from app.database import Base
+from sqlalchemy import create_engine, inspect
 
 
 def test_snapshot_includes_wal_and_can_bootstrap_again(tmp_path):

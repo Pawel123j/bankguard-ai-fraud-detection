@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
+from app.time_utils import utc_iso
 
 Channel = Literal["CARD", "TRANSFER", "ATM", "ONLINE"]
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -26,6 +27,14 @@ class TransactionBase(BaseModel):
     previous_failed_attempts: int = Field(default=0, ge=0)
     device_trust_score: int = Field(default=100, ge=0, le=100)
 
+    @field_validator("currency")
+    @classmethod
+    def currency_code(cls, value: str) -> str:
+        value = value.upper()
+        if not value.isascii() or not value.isalpha():
+            raise ValueError("Use a three-letter currency code")
+        return value
+
 
 class TransactionCreate(TransactionBase):
     status: TransactionStatus = "NEW"
@@ -40,6 +49,10 @@ class TransactionRead(TransactionBase):
     reasons: list[str]
     status: TransactionStatus
 
+    @field_serializer("transaction_date")
+    def serialize_date(self, value: datetime) -> str:
+        return utc_iso(value)
+
 
 class FraudCaseRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -53,6 +66,10 @@ class FraudCaseRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     transaction: TransactionRead | None = None
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_date(self, value: datetime) -> str:
+        return utc_iso(value)
 
 
 class FraudCaseUpdate(BaseModel):

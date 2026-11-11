@@ -36,10 +36,9 @@ export default function Reports() {
   function exportCsv() {
     if (!summary) return;
     const rows = [
-      ["metric", "value"],
+      ["metric", "value", "currency"],
       ["total_transactions", summary.total_transactions],
-      ["total_amount", summary.total_amount],
-      ["high_risk_amount", summary.high_risk_amount],
+      ...summary.amounts_by_currency.flatMap((item) => [["total_amount", item.total_amount, item.currency], ["high_risk_amount", item.high_risk_amount, item.currency]]),
       ["open_cases", summary.open_cases],
     ];
     downloadFile("bankguard-summary.csv", rows.map((row) => row.join(",")).join("\n"), "text/csv");
@@ -60,14 +59,13 @@ export default function Reports() {
           </div>
         </div>
         <div className="report-metrics">
-          <div>
-            <span>Total amount</span>
-            <strong>${summary.total_amount.toLocaleString()}</strong>
-          </div>
-          <div>
-            <span>High-risk exposure</span>
-            <strong>${summary.high_risk_amount.toLocaleString()}</strong>
-          </div>
+          {summary.amounts_by_currency.map((item) => (
+            <div key={item.currency}>
+              <span>Total · {item.currency}</span>
+              <strong>{item.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.currency}</strong>
+              <span>High-risk amount: {item.high_risk_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.currency}</span>
+            </div>
+          ))}
           <div>
             <span>Open cases</span>
             <strong>{summary.open_cases}</strong>
@@ -79,9 +77,9 @@ export default function Reports() {
         <h2>Executive Summary</h2>
         <p>{summary.executive_summary}</p>
         <p>
-          Fraud pressure is concentrated in transactions with high values, foreign locations, low-trust devices, and
-          repeated failed attempts. Analysts should prioritize critical alerts, review unusual geographies, and close
-          false positives quickly to keep the queue clean.
+          Rule-based demonstration using synthetic sample data. Amount thresholds are illustrative:
+          USD 10,000; EUR 9,000; GBP 8,000; PLN 40,000. Other currencies are marked for manual review.
+          These are policy thresholds, not exchange rates or verified loss estimates.
         </p>
       </section>
 

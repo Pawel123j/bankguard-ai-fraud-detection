@@ -1,9 +1,8 @@
-from datetime import datetime
-
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.time_utils import utc_now_naive
 
 
 class Analyst(Base):
@@ -23,7 +22,7 @@ class Analyst(Base):
     # bcrypt hash — never the password itself.
     password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
 
 
 class Transaction(Base):
@@ -61,8 +60,8 @@ class FraudCase(Base):
     status = Column(String(30), nullable=False, default="NEW", index=True)
     priority = Column(String(20), nullable=False, default="LOW", index=True)
     notes = Column(Text, nullable=False, default="")
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
+    updated_at = Column(DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
 
     transaction = relationship("Transaction", back_populates="cases")
 

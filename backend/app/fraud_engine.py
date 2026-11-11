@@ -1,5 +1,8 @@
 from typing import Any
 
+# Illustrative policy thresholds, not live FX quotes or calibrated fraud models.
+HIGH_AMOUNT_THRESHOLDS = {"USD": 10000, "EUR": 9000, "GBP": 8000, "PLN": 40000}
+
 
 SUSPICIOUS_MERCHANT_CATEGORIES = {
     "crypto exchange",
@@ -65,7 +68,11 @@ def score_transaction(transaction: dict[str, Any]) -> dict[str, Any]:
     merchant_category = str(transaction.get("merchant_category", "")).strip().lower()
     country = str(transaction.get("country", "")).strip().lower()
 
-    if amount > 10000:
+    currency = str(transaction.get("currency", "USD")).strip().upper()
+    threshold = HIGH_AMOUNT_THRESHOLDS.get(currency)
+    if threshold is None:
+        reasons.append(f"Amount rule unavailable for {currency}; manual review required")
+    elif amount > threshold:
         score += 25
         reasons.append("High amount")
 

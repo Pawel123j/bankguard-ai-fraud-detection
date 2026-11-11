@@ -6,7 +6,6 @@ from app import models, schemas
 from app.database import get_db
 from app.security import get_current_analyst
 
-
 router = APIRouter(
     prefix="/api/dashboard", tags=["dashboard"],
     # Zależność na routerze, nie na pojedynczych trasach: nowy endpoint
