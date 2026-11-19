@@ -22,6 +22,8 @@ class Analyst(Base):
     # bcrypt hash — never the password itself.
     password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    # BG-01: "analyst" może zmieniać dane; "viewer" ma dostęp tylko do odczytu.
+    role = Column(String(20), nullable=False, default="analyst")
     created_at = Column(DateTime, nullable=False, default=utc_now_naive)
 
 
@@ -60,6 +62,8 @@ class FraudCase(Base):
     status = Column(String(30), nullable=False, default="NEW", index=True)
     priority = Column(String(20), nullable=False, default="LOW", index=True)
     notes = Column(Text, nullable=False, default="")
+    # BG-01: kto ostatnio zmienił sprawę (rozliczalność decyzji analityków).
+    updated_by = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=utc_now_naive)
     updated_at = Column(DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
 

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.fraud_engine import score_transaction
-from app.security import get_current_analyst
+from app.security import get_current_analyst, require_writer
 from app.time_utils import utc_naive
 
 router = APIRouter(
@@ -85,6 +85,8 @@ def list_transactions(
     search: str | None = Query(default=None),
     sort_by: str = Query(default="transaction_date"),
     sort_order: str = Query(default="desc"),
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Transaction)
@@ -111,7 +113,8 @@ def list_transactions(
     sort_column = sort_fields.get(sort_by, models.Transaction.transaction_date)
     query = query.order_by(desc(sort_column) if sort_order.lower() == "desc" else asc(sort_column))
 
-    return query.all()
+    # BG-02: odpowiedź ograniczona (domyślnie 500, maks. 1000) zamiast całej tabeli.
+    return query.offset(offset).limit(limit).all()
 
 
 @router.get("/{transaction_id}", response_model=schemas.TransactionRead)
@@ -122,7 +125,12 @@ def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return transaction
 
 
-@router.post("", response_model=schemas.TransactionRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=schemas.TransactionRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_writer)],
+)
 def create_transaction(payload: schemas.TransactionCreate, db: Session = Depends(get_db)):
     data = _normalize_transaction_data(payload.model_dump())
 
@@ -145,7 +153,7 @@ def create_transaction(payload: schemas.TransactionCreate, db: Session = Depends
     return transaction
 
 
-@router.post("/import")
+@router.post("/import", dependencies=[Depends(require_writer)])
 async def import_transactions(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only CSV files are supported")

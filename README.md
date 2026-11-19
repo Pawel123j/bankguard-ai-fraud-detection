@@ -113,3 +113,10 @@ The included transactions are synthetic. Risk thresholds are illustrative, repor
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Role i rozliczalność (2026-11)
+
+- `analysts.role`: `analyst` (pełny dostęp) lub `viewer` (tylko odczyt — import, nowe transakcje i decyzje w sprawach zwracają 403). Istniejące konta dostają `analyst` automatycznie przy starcie (dodanie kolumny jest idempotentne).
+- Każda zmiana sprawy zapisuje `updated_by` (e-mail analityka).
+- Listy `/api/transactions` i `/api/cases` przyjmują `limit` (domyślnie 500, maks. 1000) i `offset`.
+- Frontend (nginx) wysyła CSP i nagłówki bezpieczeństwa — `connect-src` musi obejmować adres API z `VITE_API_BASE_URL` (`frontend/nginx.conf`).

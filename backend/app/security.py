@@ -121,3 +121,13 @@ def get_current_analyst(
         raise _UNAUTHORIZED
 
     return analyst
+
+
+WRITER_ROLES = frozenset({"analyst"})
+
+
+def require_writer(analyst: models.Analyst = Depends(get_current_analyst)) -> models.Analyst:
+    """Zmiany danych (import, nowe transakcje, decyzje w sprawach) tylko dla roli analyst (BG-01)."""
+    if analyst.role not in WRITER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only account")
+    return analyst

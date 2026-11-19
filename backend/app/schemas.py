@@ -65,6 +65,7 @@ class FraudCaseRead(BaseModel):
     notes: str
     created_at: datetime
     updated_at: datetime
+    updated_by: str | None = None
     transaction: TransactionRead | None = None
 
     @field_serializer("created_at", "updated_at")
@@ -73,9 +74,9 @@ class FraudCaseRead(BaseModel):
 
 
 class FraudCaseUpdate(BaseModel):
-    assigned_to: str | None = None
+    assigned_to: str | None = Field(default=None, max_length=120)
     status: CaseStatus | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=5000)
 
 
 class DashboardStats(BaseModel):
