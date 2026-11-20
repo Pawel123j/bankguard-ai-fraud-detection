@@ -8,7 +8,7 @@ BankGuard is a portfolio demo for transaction review and case handling. An analy
 
 ## Run locally
 
-Requirements: Python 3.12 or newer and Node.js 20 or newer.
+Requirements: Python 3.12 and Node.js 24, matching the tested CI runtimes.
 
 ### 1. Start the API and load demo data
 
@@ -29,6 +29,8 @@ The API runs at `http://127.0.0.1:8000`. The seed adds missing synthetic transac
 ### 2. Start the frontend
 
 In another terminal:
+
+Use Node.js 24, matching the frontend CI jobs. Install the locked dependencies:
 
 ```bash
 cd frontend
@@ -84,6 +86,9 @@ npm run build
 
 The Playwright scenario signs in, imports the sample CSV, saves case notes and status, exercises a failed-write retry, then checks logout and invalid-token behavior. It refreshes the screenshots shown above:
 
+Chromium runs with its sandbox enabled. CI uses the runner's installed Google
+Chrome; local runs can use a compatible sandboxed Chromium executable.
+
 ```bash
 cd frontend
 VITE_API_BASE_URL=http://127.0.0.1:18321 npm run build
@@ -94,8 +99,24 @@ E2E_API_PYTHON="$(pwd)/.venv/bin/python" PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/pa
 
 ## Boundaries
 
+Recovery checks (2026-11-16): 105 backend tests, frontend clean install/types/build
+and the real FastAPI/SQLite browser scenario passed locally. Dependency checks
+reported zero known vulnerabilities in 61 installed Python packages and the npm
+lockfile. CI repeats both dependency audits and builds/runs the Compose images
+with a disposable seeded volume. The recovery branch preserves the frontend
+dependency changes from PR #3 and the currency/seed fixes already merged by PR #4.
+Final CI evidence belongs to the recovery PR's exact commit; a Compose health
+smoke test does not establish production hosting or detector accuracy.
+
 The included transactions are synthetic. Risk thresholds are illustrative, reports do not convert currencies, and this project is not a bank service or a validated fraud model. The browser stores the short-lived session token in `sessionStorage`; use a server-managed `httpOnly` cookie and a production database before any real deployment.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Role i rozliczalność (2026-11)
+
+- `analysts.role`: `analyst` (pełny dostęp) lub `viewer` (tylko odczyt — import, nowe transakcje i decyzje w sprawach zwracają 403). Istniejące konta dostają `analyst` automatycznie przy starcie (dodanie kolumny jest idempotentne).
+- Każda zmiana sprawy zapisuje `updated_by` (e-mail analityka).
+- Listy `/api/transactions` i `/api/cases` przyjmują `limit` (domyślnie 500, maks. 1000) i `offset`.
+- Frontend (nginx) wysyła CSP i nagłówki bezpieczeństwa — `connect-src` musi obejmować adres API z `VITE_API_BASE_URL` (`frontend/nginx.conf`).

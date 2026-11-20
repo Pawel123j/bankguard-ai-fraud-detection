@@ -15,10 +15,32 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+# Kolumny dodane po pierwszym wydaniu. `create_all` tworzy tylko brakujące TABELE, więc
+# istniejące bazy dostają nowe kolumny tu — idempotentnie, z wartością domyślną.
+_ADDED_COLUMNS = (
+    ("analysts", "role", "VARCHAR(20) NOT NULL DEFAULT 'analyst'"),
+    ("fraud_cases", "updated_by", "VARCHAR(255)"),
+)
+
+
+def _add_missing_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    with engine.begin() as connection:
+        for table, column, ddl in _ADDED_COLUMNS:
+            if table not in inspector.get_table_names():
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if column not in existing:
+                connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+
+
 def init_db() -> None:
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
 
 
 def get_db() -> Generator:
