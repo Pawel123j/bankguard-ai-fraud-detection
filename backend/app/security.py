@@ -8,13 +8,16 @@ that no endpoint ever checked. Every ``/api`` route below now depends on
 Configuration comes from the environment. There is deliberately **no fallback
 secret**: a signing key baked into source is public the moment the repository
 is, and an application that starts anyway would sign tokens anyone could forge.
-Missing configuration fails loudly at import time instead.
+Missing or too-short configuration makes the API refuse to start (see the
+``lifespan`` hook in ``app.main``) instead of failing on the first request.
 """
 
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 
 import bcrypt
 import jwt
@@ -42,11 +45,24 @@ _MISSING_SECRET_MESSAGE = (
 )
 
 
+#: RFC 7518 §3.2: an HS256 key must be at least as long as the hash output.
+#: A shorter key can be brute-forced offline from a single captured token.
+MIN_SECRET_BYTES = 32
+
+_SHORT_SECRET_MESSAGE = (
+    f"BANKGUARD_JWT_SECRET is shorter than {MIN_SECRET_BYTES} bytes. HS256 tokens "
+    "signed with a short key can be brute-forced offline. Generate a strong one with\n"
+    "    python -c 'import secrets; print(secrets.token_urlsafe(48))'"
+)
+
+
 def get_jwt_secret() -> str:
-    """Return the signing secret, or refuse to continue without one."""
+    """Return the signing secret, or refuse to continue without a strong one."""
     secret = os.getenv("BANKGUARD_JWT_SECRET", "").strip()
     if not secret:
         raise RuntimeError(_MISSING_SECRET_MESSAGE)
+    if len(secret.encode("utf-8")) < MIN_SECRET_BYTES:
+        raise RuntimeError(_SHORT_SECRET_MESSAGE)
     return secret
 
 
@@ -67,6 +83,27 @@ def verify_password(plain: str, hashed: str) -> bool:
         # Malformed hash in the database — treat as a failed login rather than
         # a 500, but never as a success.
         return False
+
+
+@lru_cache(maxsize=1)
+def _dummy_hash() -> str:
+    """A bcrypt hash of a random value, built with the same cost as real ones."""
+    return hash_password(secrets.token_urlsafe(24))
+
+
+def verify_password_or_dummy(plain: str, hashed: str | None) -> bool:
+    """Like :func:`verify_password`, but spends one bcrypt comparison even when
+    there is no stored hash.
+
+    Without this, a login for an unknown address returns after a dictionary
+    lookup while a known address pays for a full bcrypt check, so the response
+    time reveals which analyst accounts exist even though the status code and
+    message are identical.
+    """
+    if hashed is None:
+        verify_password(plain, _dummy_hash())
+        return False
+    return verify_password(plain, hashed)
 
 
 def create_access_token(*, subject: str, full_name: str) -> tuple[str, int]:
@@ -106,8 +143,13 @@ def get_current_analyst(
         raise _UNAUTHORIZED
 
     try:
+        # PyJWT checks `exp` only when it is present; require it (and `sub`) so
+        # a correctly signed token without an expiry is not accepted forever.
         payload = jwt.decode(
-            credentials.credentials, get_jwt_secret(), algorithms=[ALGORITHM]
+            credentials.credentials,
+            get_jwt_secret(),
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub"]},
         )
     except jwt.PyJWTError:
         raise _UNAUTHORIZED from None

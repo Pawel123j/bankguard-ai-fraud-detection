@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 from app.login_throttle import limit_login
-from app.security import create_access_token, get_current_analyst, verify_password
+from app.security import (
+    create_access_token,
+    get_current_analyst,
+    verify_password_or_dummy,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -38,10 +42,13 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
 
     # One message and one status code for every failure: unknown address,
     # wrong password and disabled account must be indistinguishable, or the
-    # endpoint becomes a way to enumerate valid analyst accounts.
-    if analyst is None or not analyst.is_active or not verify_password(
-        payload.password, analyst.password_hash
-    ):
+    # endpoint becomes a way to enumerate valid analyst accounts. The password
+    # is checked BEFORE the account state is looked at, so that every branch
+    # pays for exactly one bcrypt comparison and timing does not tell them apart.
+    password_ok = verify_password_or_dummy(
+        payload.password, analyst.password_hash if analyst else None
+    )
+    if analyst is None or not analyst.is_active or not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",

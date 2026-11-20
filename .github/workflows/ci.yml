@@ -39,7 +39,7 @@ jobs:
         # app/security.py), więc testy też muszą go dostać. Wartość jest
         # jednorazowa i nie ma znaczenia poza tym przebiegiem.
         env:
-          BANKGUARD_JWT_SECRET: ci-only-secret-${{ github.run_id }}
+          BANKGUARD_JWT_SECRET: ci-only-secret-not-for-production-${{ github.run_id }}
         run: pytest -q
 
   frontend:
