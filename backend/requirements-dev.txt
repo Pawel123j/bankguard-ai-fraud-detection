@@ -1,2 +1,5 @@
 -r requirements.txt
+# Test-only: kept out of requirements.txt so the production image does not ship them.
+pytest==9.0.3
+httpx==0.28.1  # required by fastapi.testclient.TestClient
 ruff==0.16.8

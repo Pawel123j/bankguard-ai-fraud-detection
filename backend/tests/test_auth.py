@@ -201,3 +201,118 @@ def test_missing_jwt_secret_is_fatal(monkeypatch):
         # przywrócić oba, inaczej kolejne testy dostaną zepsuty moduł.
         monkeypatch.setenv("BANKGUARD_JWT_SECRET", original)
         importlib.reload(security)
+
+
+def test_short_jwt_secret_is_fatal(monkeypatch):
+    """An HS256 key under 32 bytes can be brute-forced offline from one token."""
+    from app import security
+
+    monkeypatch.setenv("BANKGUARD_JWT_SECRET", "x" * (security.MIN_SECRET_BYTES - 1))
+    with pytest.raises(RuntimeError, match="shorter than 32 bytes"):
+        security.get_jwt_secret()
+
+    monkeypatch.setenv("BANKGUARD_JWT_SECRET", "x" * security.MIN_SECRET_BYTES)
+    assert security.get_jwt_secret() == "x" * security.MIN_SECRET_BYTES
+
+
+@pytest.mark.parametrize("secret", [None, "too-short"])
+def test_api_refuses_to_start_without_a_usable_secret(monkeypatch, secret):
+    """Misconfiguration must stop the process at startup, not 500 on first login."""
+    from app.main import app
+
+    if secret is None:
+        monkeypatch.delenv("BANKGUARD_JWT_SECRET", raising=False)
+    else:
+        monkeypatch.setenv("BANKGUARD_JWT_SECRET", secret)
+
+    with pytest.raises(RuntimeError, match="BANKGUARD_JWT_SECRET"):
+        with TestClient(app):
+            pass
+
+
+def test_api_starts_with_a_valid_secret():
+    from app.main import app
+
+    with TestClient(app) as started:
+        assert started.get("/health").status_code == 200
+
+
+# --- login timing ----------------------------------------------------------
+
+
+def _deactivate_analyst():
+    db = SessionLocal()
+    try:
+        record = db.query(models.Analyst).filter(models.Analyst.email == ANALYST_EMAIL).one()
+        record.is_active = False
+        db.commit()
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["correct_password", "wrong_password", "unknown_account", "inactive_account"],
+)
+def test_every_login_path_performs_exactly_one_bcrypt_comparison(
+    client: TestClient, analyst, monkeypatch, scenario
+):
+    """Response time must not reveal whether an account exists.
+
+    Asserting on the number of bcrypt comparisons is deterministic, unlike
+    comparing wall-clock timings: an unknown address used to skip the (slow)
+    comparison entirely and answer measurably faster than a known one.
+    """
+    import bcrypt
+    from app import security
+
+    calls = []
+    real_checkpw = bcrypt.checkpw
+
+    def counting_checkpw(password, hashed):
+        calls.append(hashed)
+        return real_checkpw(password, hashed)
+
+    monkeypatch.setattr(security.bcrypt, "checkpw", counting_checkpw)
+
+    email, password = ANALYST_EMAIL, ANALYST_PASSWORD
+    if scenario == "wrong_password":
+        password = "wrong-password"
+    elif scenario == "unknown_account":
+        email = "nobody@bankguard.ai"
+    elif scenario == "inactive_account":
+        _deactivate_analyst()
+
+    response = client.post("/api/auth/login", json={"email": email, "password": password})
+
+    assert response.status_code == (200 if scenario == "correct_password" else 401)
+    assert len(calls) == 1
+
+
+def test_dummy_hash_has_the_same_cost_as_real_hashes():
+    """A cheaper dummy hash would reintroduce the timing difference."""
+    from app import security
+
+    def cost(hashed: str) -> str:
+        return hashed.split("$")[2]
+
+    assert cost(security._dummy_hash()) == cost(hash_password("anything"))
+    assert security.verify_password_or_dummy("anything", None) is False
+
+
+# --- required claims -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"sub": ANALYST_EMAIL},  # no exp: would never expire
+        {"exp": 9999999999},  # no sub
+    ],
+)
+def test_correctly_signed_token_missing_required_claims_is_rejected(
+    client: TestClient, analyst, claims
+):
+    token = jwt.encode(claims, get_jwt_secret(), algorithm="HS256")
+    response = client.get("/api/dashboard/stats", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401

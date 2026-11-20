@@ -1,19 +1,27 @@
 name: BankGuard AI CI
 
-# Wcześniej: branches: ["main"] — czyli CI NIE uruchamiało się na gałęziach
-# roboczych i pierwszą informacją o błędzie był czerwony build na main.
+# Gałęzie robocze testuje zdarzenie pull_request, więc błąd widać przed
+# scaleniem. `push` na każdej gałęzi uruchamiał ten sam zestaw drugi raz
+# (razem z budowaniem obrazów Dockera); teraz `push` obejmuje tylko main.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+# Nowy push do PR-a anuluje przebieg, który i tak jest już nieaktualny.
+# Przebiegi na main nie są anulowane, żeby każdy commit miał pełny wynik.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -39,12 +47,13 @@ jobs:
         # app/security.py), więc testy też muszą go dostać. Wartość jest
         # jednorazowa i nie ma znaczenia poza tym przebiegiem.
         env:
-          BANKGUARD_JWT_SECRET: ci-only-secret-${{ github.run_id }}
+          BANKGUARD_JWT_SECRET: ci-only-secret-not-for-production-${{ github.run_id }}
         run: pytest -q
 
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: frontend

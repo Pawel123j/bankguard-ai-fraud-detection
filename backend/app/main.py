@@ -6,10 +6,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.routes import auth, cases, dashboard, reports, transactions
+from app.security import get_jwt_secret
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Fail at startup, not on the first login: without this a deployment with a
+    # missing or too-short BANKGUARD_JWT_SECRET starts "healthy" and then
+    # answers every authenticated request with a 500.
+    get_jwt_secret()
     init_db()
     yield
 
