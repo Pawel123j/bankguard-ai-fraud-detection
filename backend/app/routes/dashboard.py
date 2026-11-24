@@ -42,7 +42,7 @@ def dashboard_stats(db: Session = Depends(get_db)):
     ):
         risk_distribution[level] = count
 
-    channel_distribution = {channel: 0 for channel in ["CARD", "TRANSFER", "ATM", "ONLINE"]}
+    channel_distribution = {channel: 0 for channel in ["CARD", "TRANSFER", "ATM", "ONLINE", "BLIK"]}
     for channel, count in db.query(models.Transaction.channel, func.count(models.Transaction.id)).group_by(
         models.Transaction.channel
     ):

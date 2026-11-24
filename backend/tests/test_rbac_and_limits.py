@@ -82,3 +82,19 @@ def test_existing_database_gets_new_columns(tmp_path, monkeypatch):
     with legacy_engine.connect() as conn:
         assert conn.exec_driver_sql("SELECT role FROM analysts").scalar() == "analyst"
     assert "updated_by" in {c["name"] for c in inspect(legacy_engine).get_columns("fraud_cases")}
+
+
+def test_existing_transactions_table_gets_2026_11_signal_columns(tmp_path, monkeypatch):
+    path = tmp_path / "legacy-tx.db"
+    with sqlite3.connect(path) as legacy:
+        legacy.execute("CREATE TABLE transactions (id INTEGER PRIMARY KEY, transaction_id VARCHAR(64))")
+        legacy.execute("INSERT INTO transactions VALUES (1, 'OLD-1')")
+    legacy_engine = create_engine(f"sqlite:///{path}")
+    monkeypatch.setattr(database, "engine", legacy_engine)
+    database.init_db()
+    database.init_db()
+    columns = {c["name"] for c in inspect(legacy_engine).get_columns("transactions")}
+    assert {"is_new_payee", "payee_account_age_days", "remote_access_detected",
+            "active_call_during_session", "recent_sim_swap"} <= columns
+    with legacy_engine.connect() as conn:
+        assert conn.exec_driver_sql("SELECT is_new_payee, recent_sim_swap FROM transactions").one() == (0, 0)

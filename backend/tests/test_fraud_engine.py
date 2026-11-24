@@ -43,7 +43,17 @@ def score(**overrides) -> dict:
         ({"previous_failed_attempts": 3}, 20, "Multiple previous failed attempts"),
         ({"device_trust_score": 39}, 20, "Low device trust score"),
         ({"merchant_category": "Crypto Exchange"}, 10, "Suspicious merchant category"),
-        ({"country": "Russia"}, 10, "Unusual country or location"),
+        ({"country": "Iran"}, 20, "FATF high-risk jurisdiction (call for action)"),
+        ({"country": "Russia"}, 15, "Sanctioned jurisdiction"),
+        ({"country": "Vietnam"}, 10, "FATF jurisdiction under increased monitoring"),
+        ({"country": "Unknown"}, 10, "Unknown location"),
+        ({"is_new_payee": True}, 15, "First payment to a new payee"),
+        ({"payee_account_age_days": 29}, 15, "Recipient account opened recently (possible money mule)"),
+        ({"remote_access_detected": True}, 25, "Remote-access or screen-sharing tool active during session"),
+        ({"active_call_during_session": True}, 15, "Customer on an active phone call during payment"),
+        ({"recent_sim_swap": True}, 20, "SIM card swapped recently"),
+        ({"merchant_category": "Crypto ATM"}, 10, "Suspicious merchant category"),
+        ({"merchant_category": "Investment Platform"}, 10, "Suspicious merchant category"),
     ],
 )
 def test_each_signal_contributes_its_documented_weight(
@@ -111,7 +121,7 @@ def test_risk_level_boundaries(points, level):
 
 
 def test_score_is_capped_at_100():
-    """Every signal at once sums to 110 — the score must not exceed 100."""
+    """The original seven signals at once sum to 135 — the score must not exceed 100."""
     result = score(
         amount=999_999,
         is_foreign=True,
@@ -138,16 +148,24 @@ def test_merchant_category_matching_ignores_case_and_padding(category):
     assert "Suspicious merchant category" in score(merchant_category=category)["reasons"]
 
 
-@pytest.mark.parametrize("country", ["russia", "Russia", "  NORTH KOREA  "])
-def test_country_matching_ignores_case_and_padding(country):
-    assert "Unusual country or location" in score(country=country)["reasons"]
+@pytest.mark.parametrize("country", ["north korea", "North Korea", "  IRAN  ", "Myanmar", "Burma", "DPRK"])
+def test_country_matching_ignores_case_padding_and_aliases(country):
+    assert "FATF high-risk jurisdiction (call for action)" in score(country=country)["reasons"]
 
 
-def test_unlisted_category_and_country_are_not_flagged():
-    result = score(merchant_category="Bookshop", country="Portugal")
+# Removed from the FATF grey list (Nigeria in Oct 2025; Bulgaria, Côte d'Ivoire,
+# DR Congo and Monaco in Oct 2026) — they must not keep a jurisdiction penalty.
+@pytest.mark.parametrize("country", ["Portugal", "Nigeria", "Bulgaria", "Monaco"])
+def test_unlisted_and_delisted_countries_are_not_flagged(country):
+    result = score(merchant_category="Bookshop", country=country)
 
-    assert "Suspicious merchant category" not in result["reasons"]
-    assert "Unusual country or location" not in result["reasons"]
+    assert result["risk_score"] == 0
+
+
+def test_jurisdiction_penalty_is_applied_once():
+    result = score(country="North Korea")
+    assert result["risk_score"] == 20
+    assert len(result["reasons"]) == 1
 
 
 # --- coercion: the engine also scores rows straight off a CSV --------------
@@ -218,6 +236,60 @@ def test_large_but_otherwise_clean_transaction_is_only_medium():
 
     assert result["risk_score"] == 25
     assert result["risk_level"] == "LOW"
+
+
+def test_signals_added_in_2026_11_are_optional():
+    """Older CSVs and clients send none of the new fields; scores must not change."""
+    assert score_transaction(BASELINE)["risk_score"] == 0
+    assert score(payee_account_age_days=None)["risk_score"] == 0
+    assert score(payee_account_age_days="")["risk_score"] == 0
+    assert score(payee_account_age_days=30)["risk_score"] == 0
+
+
+# --- 2026 scam typologies --------------------------------------------------
+
+
+@pytest.mark.parametrize("pressure", [{"active_call_during_session": True}, {"remote_access_detected": True}])
+@pytest.mark.parametrize("channel", ["TRANSFER", "BLIK"])
+def test_safe_account_scam_pattern(pressure, channel):
+    result = score(channel=channel, is_new_payee=True, **pressure)
+    assert "Pattern: possible bank-impersonation (safe account) scam" in result["reasons"]
+
+
+def test_safe_account_pattern_needs_a_new_payee():
+    result = score(channel="TRANSFER", active_call_during_session=True)
+    assert not any(r.startswith("Pattern:") for r in result["reasons"])
+
+
+def test_typical_safe_account_scam_reaches_critical_without_legacy_signals():
+    """Authorised push payment: the customer's own device, no failed logins."""
+    result = score(
+        channel="TRANSFER", is_new_payee=True, payee_account_age_days=5,
+        remote_access_detected=True, active_call_during_session=True,
+    )
+    assert result["risk_level"] == "CRITICAL"
+
+
+def test_account_takeover_pattern_needs_sim_swap_and_weak_session():
+    assert "Pattern: possible account takeover" in score(
+        recent_sim_swap=True, device_trust_score=20)["reasons"]
+    assert "Pattern: possible account takeover" in score(
+        recent_sim_swap=True, previous_failed_attempts=3)["reasons"]
+    assert "Pattern: possible account takeover" not in score(recent_sim_swap=True)["reasons"]
+
+
+def test_blik_friend_impersonation_pattern():
+    result = score(channel="BLIK", is_new_payee=True)
+    assert result["risk_score"] == 25
+    assert "Pattern: BLIK payment to new recipient (friend-impersonation scam)" in result["reasons"]
+    assert score(channel="BLIK")["risk_score"] == 0
+
+
+def test_investment_scam_pattern():
+    result = score(merchant_category="Investment Platform", is_new_payee=True)
+    assert "Pattern: possible investment scam" in result["reasons"]
+    assert "Pattern: possible investment scam" not in score(
+        merchant_category="Gambling", is_new_payee=True)["reasons"]
 
 
 def test_reasons_are_analyst_readable_not_codes():

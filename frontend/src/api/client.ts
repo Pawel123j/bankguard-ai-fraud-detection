@@ -1,5 +1,5 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type Channel = "CARD" | "TRANSFER" | "ATM" | "ONLINE";
+export type Channel = "CARD" | "TRANSFER" | "ATM" | "ONLINE" | "BLIK";
 export type TransactionStatus = "NEW" | "REVIEWED" | "ESCALATED" | "CLEARED";
 export type CaseStatus = "NEW" | "INVESTIGATING" | "RESOLVED" | "FALSE_POSITIVE";
 
@@ -19,6 +19,11 @@ export interface Transaction {
   is_night_transaction: boolean;
   previous_failed_attempts: number;
   device_trust_score: number;
+  is_new_payee: boolean;
+  payee_account_age_days: number | null;
+  remote_access_detected: boolean;
+  active_call_during_session: boolean;
+  recent_sim_swap: boolean;
   risk_score: number;
   risk_level: RiskLevel;
   reasons: string[];

@@ -53,6 +53,33 @@ CSV timestamps with an explicit offset are converted to UTC. Timestamps without 
 
 High-amount rules use illustrative thresholds of USD 10,000, EUR 9,000, GBP 8,000 and PLN 40,000. These are policy examples, not live exchange rates or calibrated fraud thresholds. Other currencies are marked for manual review. Alerts are not proof of fraud.
 
+## Rule set 2026-11
+
+The scoring rules were reviewed against public 2026 fraud reporting: the FATF plenary of 28–30 October 2026, the UK Finance Annual Fraud Report 2026 (authorised push payment losses up 19%, investment scams the largest category), the BIK Raport Antyfraudowy 2026 (BLIK-code requests from hijacked social-media accounts are the most common scam in Poland) and Europol IOCTA 2026 (SIM-swap account takeover, mule networks).
+
+| Signal | Points |
+| --- | --- |
+| High amount (per-currency threshold) | 25 |
+| Foreign transaction | 15 |
+| Night transaction | 10 |
+| 3+ previous failed attempts | 20 |
+| Device trust score below 40 | 20 |
+| Suspicious merchant category (incl. crypto ATM, investment platform, gift cards) | 10 |
+| FATF call for action: Iran, North Korea, Myanmar | 20 |
+| Sanctioned jurisdiction: Russia, Belarus | 15 |
+| FATF increased monitoring (18 jurisdictions, Oct 2026) or unknown location | 10 |
+| `is_new_payee` – first payment to this payee | 15 |
+| `payee_account_age_days` < 30 – possible money mule | 15 |
+| `remote_access_detected` – remote-access/screen-sharing tool in session | 25 |
+| `active_call_during_session` – customer on a call while paying | 15 |
+| `recent_sim_swap` – SIM changed recently | 20 |
+| Pattern: safe-account scam (call or remote access + new payee, TRANSFER/BLIK) | +15 |
+| Pattern: account takeover (SIM swap + weak device or failed logins) | +10 |
+| Pattern: BLIK to a new recipient (friend-impersonation scam) | +10 |
+| Pattern: investment scam (new payee + crypto/investment merchant) | +10 |
+
+Scores are capped at 100. The five new CSV columns and the `BLIK` channel are optional: older CSVs import unchanged, and existing SQLite databases get the new columns at startup. Nigeria, Bulgaria, Côte d'Ivoire, DR Congo and Monaco no longer carry a jurisdiction penalty because they left the FATF grey list. Jurisdiction lists change after each FATF plenary (February, June, October) and must be reviewed then.
+
 ## Docker Compose
 
 Docker is optional for local use. To run the container demo, create `.env` from `.env.example`, set a private `BANKGUARD_JWT_SECRET` and choose `BANKGUARD_DEMO_PASSWORD`, then seed the named volume and start both services:
@@ -76,7 +103,7 @@ ruff check .
 python -m pytest -q
 ```
 
-The suite has 105 tests across the scoring rules, API, authentication, backup, timestamp/currency contracts, import handling and idempotent seeding. The frontend checks and production build are:
+The suite has 154 tests across the scoring rules, API, authentication, backup, timestamp/currency contracts, import handling and idempotent seeding. The frontend checks and production build are:
 
 ```bash
 cd frontend
@@ -99,7 +126,7 @@ E2E_API_PYTHON="$(pwd)/.venv/bin/python" PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/pa
 
 ## Boundaries
 
-Recovery checks (2026-11-16): 105 backend tests, frontend clean install/types/build
+Recovery checks (2026-11-16): 105 backend tests (154 after the 2026-11 rule set update), frontend clean install/types/build
 and the real FastAPI/SQLite browser scenario passed locally. Dependency checks
 reported zero known vulnerabilities in 61 installed Python packages and the npm
 lockfile. CI repeats both dependency audits and builds/runs the Compose images
