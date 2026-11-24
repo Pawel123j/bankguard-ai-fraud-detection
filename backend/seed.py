@@ -6,44 +6,22 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 sys.path.append(str(ROOT))
 
-from app import models  # noqa: E402
-from app.database import Base, SessionLocal, engine  # noqa: E402
-from app.fraud_engine import score_transaction  # noqa: E402
-from app.time_utils import utc_naive  # noqa: E402
+from app import models, schemas  # noqa: E402
+from app.database import SessionLocal, init_db  # noqa: E402
+from app.routes.transactions import _normalize_transaction_data  # noqa: E402
 
 CSV_PATH = ROOT / "data" / "sample_transactions.csv"
 
 
-def parse_bool(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().lower() in {"true", "1", "yes", "y"}
-
-
 def normalize_row(row: dict[str, str]) -> dict[str, Any]:
-    transaction = {
-        "transaction_id": row["transaction_id"].strip(),
-        "customer_id": row["customer_id"].strip(),
-        "amount": float(row["amount"]),
-        "currency": row["currency"].strip().upper(),
-        "merchant": row["merchant"].strip(),
-        "merchant_category": row["merchant_category"].strip(),
-        "country": row["country"].strip(),
-        "city": row["city"].strip(),
-        "channel": row["channel"].strip().upper(),
-        "transaction_date": utc_naive(row["transaction_date"]),
-        "is_foreign": parse_bool(row["is_foreign"]),
-        "is_night_transaction": parse_bool(row["is_night_transaction"]),
-        "previous_failed_attempts": int(row["previous_failed_attempts"]),
-        "device_trust_score": int(row["device_trust_score"]),
-        "status": row.get("status", "NEW").strip().upper() or "NEW",
-    }
-    transaction.update(score_transaction(transaction))
-    return transaction
+    """Validate and score a seed row exactly like the API import does."""
+    row = {**row, "status": (row.get("status") or "NEW").strip().upper() or "NEW"}
+    payload = schemas.TransactionCreate.model_validate(row)
+    return _normalize_transaction_data(payload.model_dump())
 
 
 def seed() -> None:
-    Base.metadata.create_all(bind=engine)
+    init_db()  # also adds columns introduced after an existing database was created
     db = SessionLocal()
     try:
         with CSV_PATH.open(newline="", encoding="utf-8") as csv_file:

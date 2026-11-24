@@ -51,14 +51,20 @@ def _normalize_transaction_data(data: dict[str, Any]) -> dict[str, Any]:
         "previous_failed_attempts": int(data.get("previous_failed_attempts", 0)),
         "device_trust_score": int(data.get("device_trust_score", 100)),
         "status": str(data.get("status", "NEW")).strip().upper(),
+        "is_new_payee": _parse_bool(data.get("is_new_payee", False)),
+        "payee_account_age_days": data.get("payee_account_age_days"),
+        "remote_access_detected": _parse_bool(data.get("remote_access_detected", False)),
+        "active_call_during_session": _parse_bool(data.get("active_call_during_session", False)),
+        "recent_sim_swap": _parse_bool(data.get("recent_sim_swap", False)),
     }
     normalized.update(score_transaction(normalized))
     return normalized
 
 
-def _create_case_if_needed(db: Session, transaction: models.Transaction) -> None:
+def _create_case_if_needed(db: Session, transaction: models.Transaction) -> bool:
+    """Open a case for a high/critical transaction; return whether one was added."""
     if transaction.risk_level not in {"HIGH", "CRITICAL"}:
-        return
+        return False
 
     existing = (
         db.query(models.FraudCase)
@@ -66,7 +72,7 @@ def _create_case_if_needed(db: Session, transaction: models.Transaction) -> None
         .first()
     )
     if existing:
-        return
+        return False
 
     db.add(
         models.FraudCase(
@@ -77,6 +83,7 @@ def _create_case_if_needed(db: Session, transaction: models.Transaction) -> None
             notes=f"Auto-created case for {transaction.risk_level.lower()} risk transaction.",
         )
     )
+    return True
 
 
 @router.get("", response_model=list[schemas.TransactionRead])
@@ -199,10 +206,9 @@ async def import_transactions(file: UploadFile = File(...), db: Session = Depend
         transaction = models.Transaction(**data)
         db.add(transaction)
         db.flush()
-        before_count = db.query(models.FraudCase).count()
-        _create_case_if_needed(db, transaction)
-        after_count = db.query(models.FraudCase).count()
-        created_cases += after_count - before_count
+        # The session does not autoflush, so counting rows before and after
+        # never saw the pending case and always reported 0.
+        created_cases += _create_case_if_needed(db, transaction)
         imported += 1
 
     db.commit()

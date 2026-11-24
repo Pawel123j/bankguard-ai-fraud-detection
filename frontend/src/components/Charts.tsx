@@ -1,7 +1,7 @@
 import type { Channel, RiskLevel } from "../api/client";
 
 const riskOrder: RiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
-const channelOrder: Channel[] = ["CARD", "TRANSFER", "ATM", "ONLINE"];
+const channelOrder: Channel[] = ["CARD", "TRANSFER", "ATM", "ONLINE", "BLIK"];
 
 interface ChartProps<T extends string> {
   data: Record<T, number>;

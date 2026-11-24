@@ -138,6 +138,12 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                 <dd>{new Date(selected.transaction_date).toLocaleString()}</dd>
               </div>
             </dl>
+            <h3>Session signals</h3>
+            <ul className="reason-list">
+              {sessionSignals(selected).map((signal) => (
+                <li key={signal}>{signal}</li>
+              ))}
+            </ul>
             <h3>Fraud reasons</h3>
             <ul className="reason-list">
               {selected.reasons.map((reason) => (
@@ -153,3 +159,14 @@ export default function TransactionTable({ transactions }: TransactionTableProps
   );
 }
 
+function sessionSignals(transaction: Transaction): string[] {
+  const signals: string[] = [];
+  if (transaction.is_new_payee) signals.push("New payee");
+  if (transaction.payee_account_age_days !== null && transaction.payee_account_age_days !== undefined) {
+    signals.push(`Payee account age: ${transaction.payee_account_age_days} days`);
+  }
+  if (transaction.remote_access_detected) signals.push("Remote-access tool detected");
+  if (transaction.active_call_during_session) signals.push("Active phone call during payment");
+  if (transaction.recent_sim_swap) signals.push("Recent SIM swap");
+  return signals.length ? signals : ["None reported"];
+}

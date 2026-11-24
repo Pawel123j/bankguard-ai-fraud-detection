@@ -20,6 +20,11 @@ Base = declarative_base()
 _ADDED_COLUMNS = (
     ("analysts", "role", "VARCHAR(20) NOT NULL DEFAULT 'analyst'"),
     ("fraud_cases", "updated_by", "VARCHAR(255)"),
+    ("transactions", "is_new_payee", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("transactions", "payee_account_age_days", "INTEGER"),
+    ("transactions", "remote_access_detected", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("transactions", "active_call_during_session", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("transactions", "recent_sim_swap", "BOOLEAN NOT NULL DEFAULT 0"),
 )
 
 

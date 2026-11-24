@@ -45,6 +45,12 @@ class Transaction(Base):
     is_night_transaction = Column(Boolean, nullable=False, default=False)
     previous_failed_attempts = Column(Integer, nullable=False, default=0)
     device_trust_score = Column(Integer, nullable=False, default=100)
+    # Rule set 2026-11: scam and account-takeover signals from the payment session.
+    is_new_payee = Column(Boolean, nullable=False, default=False)
+    payee_account_age_days = Column(Integer, nullable=True)
+    remote_access_detected = Column(Boolean, nullable=False, default=False)
+    active_call_during_session = Column(Boolean, nullable=False, default=False)
+    recent_sim_swap = Column(Boolean, nullable=False, default=False)
     risk_score = Column(Integer, nullable=False, default=0)
     risk_level = Column(String(20), nullable=False, default="LOW", index=True)
     reasons = Column(JSON, nullable=False, default=list)

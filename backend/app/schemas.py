@@ -1,13 +1,27 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from app.time_utils import utc_iso
 
-Channel = Literal["CARD", "TRANSFER", "ATM", "ONLINE"]
+Channel = Literal["CARD", "TRANSFER", "ATM", "ONLINE", "BLIK"]
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 TransactionStatus = Literal["NEW", "REVIEWED", "ESCALATED", "CLEARED"]
+OPTIONAL_SIGNALS = {
+    "is_new_payee",
+    "payee_account_age_days",
+    "remote_access_detected",
+    "active_call_during_session",
+    "recent_sim_swap",
+}
 CaseStatus = Literal["NEW", "INVESTIGATING", "RESOLVED", "FALSE_POSITIVE"]
 
 
@@ -26,6 +40,23 @@ class TransactionBase(BaseModel):
     is_night_transaction: bool = False
     previous_failed_attempts: int = Field(default=0, ge=0)
     device_trust_score: int = Field(default=100, ge=0, le=100)
+    # Rule set 2026-11 signals. Optional, so CSVs without these columns still import.
+    is_new_payee: bool = False
+    payee_account_age_days: int | None = Field(default=None, ge=0)
+    remote_access_detected: bool = False
+    active_call_during_session: bool = False
+    recent_sim_swap: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def blank_optional_signals_use_defaults(cls, data):
+        # A CSV with the new columns but an empty cell means "not reported".
+        if isinstance(data, dict):
+            return {
+                key: value for key, value in data.items()
+                if not (key in OPTIONAL_SIGNALS and isinstance(value, str) and not value.strip())
+            }
+        return data
 
     @field_validator("currency")
     @classmethod
